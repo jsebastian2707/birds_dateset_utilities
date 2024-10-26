@@ -1,6 +1,5 @@
 import os
 from PIL import Image
-from rembg import remove
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 
@@ -96,3 +95,4 @@ def escale_images_in_folder(ruta_dataset, output_size=(224, 224)):
 
 # Llamada a la función
 escale_images_in_folder(CONST_DATASET_BASE)
+
