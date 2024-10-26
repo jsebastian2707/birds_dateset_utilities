@@ -94,6 +94,6 @@ def escale_images_in_folder(ruta_dataset, output_size=(224, 224)):
             except Exception as e:
                 print(f"Error procesando {futures[future]}: {e}")
 
-# Llamada a la función
-escale_images_in_folder(CONST_DATASET_BASE)
-
+# Llamada a la función dentro de la verificación
+if __name__ == '__main__':
+    escale_images_in_folder(CONST_DATASET_BASE)
