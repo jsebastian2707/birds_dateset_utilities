@@ -3,6 +3,7 @@ from PIL import Image
 from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
 
+# todavia no usamos venv por que no necesita muchas dependencias
 # Constantes
 CONST_BASE_FOLDER = "E:\\OneDrive - Universidad Cooperativa de Colombia\\"
 CONST_OUTPUT_WIDTH = 224
