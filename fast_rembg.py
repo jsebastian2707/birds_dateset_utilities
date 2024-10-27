@@ -3,6 +3,11 @@ from PIL import Image
 from concurrent import futures
 from tqdm import tqdm
 import json
+from rembg import remove
+
+# +---------------------+      +---------------------+      +---------------------+
+# |resize or crop images| -- > |  remove background  | -- > |  fill background    |
+# +---------------------+      +---------------------+      +---------------------+
 
 # Cargar constantes desde el archivo JSON
 with open('config.json', 'r') as config_file:
@@ -10,13 +15,10 @@ with open('config.json', 'r') as config_file:
 
 # Constantes
 CONST_BASE_FOLDER = config["CONST_BASE_FOLDER"]
-CONST_OUTPUT_WIDTH = config["CONST_OUTPUT_WIDTH"]
-CONST_FILLBG_COLOR = tuple(config["CONST_FILLBG_COLOR"])
-CONST_DATASET_NOBG = os.path.join(CONST_BASE_FOLDER, config['CONST_DATASET_NOBG'])
-CONST_DATASET_FILLBG = os.path.join(CONST_BASE_FOLDER, config['CONST_DATASET_FILLBG'])
 CONST_DATASET_RESIZE = os.path.join(CONST_BASE_FOLDER, config['CONST_DATASET_RESIZE'])
+CONST_DATASET_NOBG = os.path.join(CONST_BASE_FOLDER, config['CONST_DATASET_NOBG'])
 CONST_DATASET_BASE = os.path.join(CONST_BASE_FOLDER, config['CONST_DATASET_BASE'])
-CONST_PROGRESS_FILE = os.path.join(CONST_BASE_FOLDER, config['CONST_PROGRESS_FILE_RESIZE'])
+CONST_PROGRESS_FILE = os.path.join(CONST_BASE_FOLDER, config['CONST_PROGRESS_FILE_NOBG'])
 
 # Cargar progreso guardado
 def load_processed_images():
@@ -30,39 +32,23 @@ def save_processed_image(filename):
     with open(CONST_PROGRESS_FILE, 'a') as f:
         f.write(f"{filename}\n")
 
-# Función para procesar una imagen individual y guardarla en la carpeta de especie correspondiente
-def process_image(file_path, species_folder, output_size=(224, 224)):
+# Función para remover el fondo de una imagen individual
+def process_image(file_path, output_folder):
     with Image.open(file_path) as img:
-        width, height = img.size
+        # Remover el fondo de la imagen
+        img_no_bg = remove(img)
 
-        # Recorte cuadrado
-        if width > height:
-            new_width = height
-            left = (width - new_width) // 2
-            upper = 0
-            right = left + new_width
-            lower = height
-        else:
-            new_height = width
-            left = 0
-            upper = (height - new_height) // 2
-            right = width
-            lower = upper + new_height
-
-        # Recorte y redimensionamiento
-        cropped_img = img.crop((left, upper, right, lower)).resize(output_size)
-
-        # Guardar la imagen recortada en la subcarpeta de la especie
-        output_filename = f"escale_{os.path.basename(file_path)}"
-        output_path = os.path.join(species_folder, output_filename)
-        cropped_img.save(output_path)
+        # Guardar la imagen sin fondo en la carpeta correspondiente
+        output_filename = f"no_bg_{os.path.basename(file_path)}.png"
+        output_path = os.path.join(output_folder, output_filename)
+        img_no_bg.save(output_path)
 
         # Guardar en el archivo de progreso
         save_processed_image(file_path)
 
-def escale_images_in_folder(ruta_dataset, output_size=(224, 224)):
-    # Crear carpeta centralizada para las imágenes redimensionadas
-    os.makedirs(CONST_DATASET_RESIZE, exist_ok=True)
+def remove_background_in_folder(ruta_dataset):
+    # Crear carpeta para las imágenes sin fondo
+    os.makedirs(CONST_DATASET_NOBG, exist_ok=True)
 
     # Cargar imágenes ya procesadas
     processed_images = load_processed_images()
@@ -72,8 +58,8 @@ def escale_images_in_folder(ruta_dataset, output_size=(224, 224)):
     for especie in os.listdir(ruta_dataset):
         ruta_especie = os.path.join(ruta_dataset, especie)
         if os.path.isdir(ruta_especie):
-            # Crear carpeta para cada especie en la carpeta de resize
-            species_folder = os.path.join(CONST_DATASET_RESIZE, especie)
+            # Crear carpeta para cada especie en la carpeta de no_background
+            species_folder = os.path.join(CONST_DATASET_NOBG, especie)
             os.makedirs(species_folder, exist_ok=True)
 
             # Crear lista de archivos de imagen en la carpeta de la especie
@@ -89,7 +75,7 @@ def escale_images_in_folder(ruta_dataset, output_size=(224, 224)):
     with futures.ProcessPoolExecutor() as executor:
         # Usar tqdm para mostrar la barra de progreso
         futures_list = {
-            executor.submit(process_image, file_path, species_folder, output_size): file_path
+            executor.submit(process_image, file_path, species_folder): file_path
             for file_path, species_folder in tasks
         }
         for future in tqdm(futures.as_completed(futures_list), total=len(futures_list)):
@@ -100,4 +86,4 @@ def escale_images_in_folder(ruta_dataset, output_size=(224, 224)):
 
 # Llamada a la función dentro de la verificación
 if __name__ == '__main__':
-    escale_images_in_folder(CONST_DATASET_BASE)
+    remove_background_in_folder(CONST_DATASET_RESIZE)
