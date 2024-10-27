@@ -1,0 +1,12 @@
+{
+  "CONST_BASE_FOLDER": "E:\\OneDrive - Universidad Cooperativa de Colombia\\",
+  "CONST_OUTPUT_WIDTH": 224,
+  "CONST_FILLBG_COLOR": [186, 202, 227, 255],
+  "CONST_DATASET_NOBG": "nobg_dataset",
+  "CONST_DATASET_FILLBG": "fillbg_dataset",
+  "CONST_DATASET_RESIZE": "resize_dataset",
+  "CONST_DATASET_BASE": "dataset",
+  "CONST_PROGRESS_FILE_RESIZE":"resize_images.txt",
+  "CONST_PROGRESS_FILE_NOBG":"nobg_images.txt",
+  "CONST_PROGRESS_FILE_FILLBG":"fillbg_images.txt"
+}
