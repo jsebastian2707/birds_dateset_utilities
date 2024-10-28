@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 import json
 import os
+from tqdm import tqdm  # Importar tqdm
 
 # Cargar constantes desde el archivo JSON
 with open('config.json', 'r') as config_file:
@@ -107,21 +108,27 @@ def create_and_train_vgg16_model(learning_rate, l2_regularization, batch_size):
     # Crear los callbacks para Early Stopping y guardar el modelo al final de cada época
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
         filepath=os.path.join(models_dir, 'epoch_{epoch}.keras'),
-        save_weights_only=False,  # Cambiar a True si solo quieres guardar los pesos
+        save_weights_only=False,
         save_freq='epoch',
         verbose=1
     )
     early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=10, verbose=1, restore_best_weights=True)
 
     # Entrenar el modelo utilizando generadores de datos para el conjunto de entrenamiento y validación
-    model_history = custom_vgg_model.fit(
-        train_generator,
-        epochs=epochs,
-        validation_data=validation_generator,
-        steps_per_epoch=nb_train_samples // batch_size,
-        validation_steps=nb_validation_samples // batch_size,
-        callbacks=[checkpoint, early_stopping]
-    )
+    # Envolver el entrenamiento en tqdm para la barra de progreso
+    with tqdm(total=epochs, desc='Entrenamiento', unit='época') as pbar:
+        model_history = custom_vgg_model.fit(
+            train_generator,
+            epochs=epochs,
+            validation_data=validation_generator,
+            steps_per_epoch=nb_train_samples // batch_size,
+            validation_steps=nb_validation_samples // batch_size,
+            callbacks=[checkpoint, early_stopping]
+        )
+
+        # Actualizar la barra de progreso al final de cada época
+        for epoch in range(epochs):
+            pbar.update(1)
 
     # Medir el tiempo y el uso de CPU/memoria después de entrenar
     end_time = time.time()
