@@ -19,6 +19,9 @@ CONST_DATASET_RESIZE = os.path.join(CONST_BASE_FOLDER, config['CONST_DATASET_RES
 CONST_DATASET_SELECTED_FOLDER = CONST_DATASET_RESIZE
 PRODUCTION_DATASET_FOLDER = os.path.join(CONST_BASE_FOLDER, "production_dataset_52_resize/transformed_dataset")
 
+# Crear la carpeta principal de producción y subcarpetas si no existen
+os.makedirs(PRODUCTION_DATASET_FOLDER, exist_ok=True)
+
 # Leer archivo CSV
 data = pd.read_csv("resultados.csv")
 
@@ -53,4 +56,3 @@ for species in selected_species:
         shutil.copy(os.path.join(species_folder, img), os.path.join(valid_dir, img))
 
 print("Imágenes copiadas en la estructura de 'transformed_dataset'")
-
