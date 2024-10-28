@@ -1,12 +1,27 @@
-# Importaciones necesarias
 import time
 import psutil
 import numpy as np
 import tensorflow as tf
+import json
+import os
+
+# Cargar constantes desde el archivo JSON
+with open('config.json', 'r') as config_file:
+    config = json.load(config_file)
+
+# Constantes
+CONST_BASE_FOLDER = config["CONST_BASE_FOLDER"]
 
 # Definir el número de muestras de entrenamiento y validación
-nb_train_samples = 2621
-nb_validation_samples = 738
+nb_train_samples = 8320
+nb_validation_samples = 2080
+
+PRODUCTION_DATASET_FOLDER = os.path.join(CONST_BASE_FOLDER, "production_dataset_52_resize/transformed_dataset")
+
+# Crear directorio para guardar modelos si no existe
+models_dir = os.path.join(CONST_BASE_FOLDER, "production_dataset_52_resize/keras_models")
+if not os.path.exists(models_dir):
+    os.makedirs(models_dir)
 
 # Definir el número de épocas
 epochs = 50
@@ -19,8 +34,8 @@ height_shape = 224
 num_classes = 18  # Ajustar según el número de clases en tu dataset
 
 # Directorios de datos de entrenamiento y validación
-train_data_dir = 'datasetpreprocesado/train'
-validation_data_dir = 'datasetpreprocesado/valid'
+train_data_dir = os.path.join(PRODUCTION_DATASET_FOLDER, 'train')
+validation_data_dir = os.path.join(PRODUCTION_DATASET_FOLDER, 'valid')
 
 # Función para crear y entrenar el modelo
 def create_and_train_vgg16_model(learning_rate, l2_regularization, batch_size):
@@ -89,8 +104,13 @@ def create_and_train_vgg16_model(learning_rate, l2_regularization, batch_size):
     start_cpu = psutil.cpu_percent(interval=None)
     start_memory = psutil.virtual_memory().used
 
-    # Crear los callbacks para Early Stopping y guardar el mejor modelo
-    checkpoint = tf.keras.callbacks.ModelCheckpoint('best_model.keras', monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
+    # Crear los callbacks para Early Stopping y guardar el modelo al final de cada época
+    checkpoint = tf.keras.callbacks.ModelCheckpoint(
+        filepath=os.path.join(models_dir, 'epoch_{epoch}.keras'),
+        save_weights_only=False,  # Cambiar a True si solo quieres guardar los pesos
+        save_freq='epoch',
+        verbose=1
+    )
     early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=10, verbose=1, restore_best_weights=True)
 
     # Entrenar el modelo utilizando generadores de datos para el conjunto de entrenamiento y validación
