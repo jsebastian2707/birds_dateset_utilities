@@ -32,7 +32,7 @@ width_shape = 224
 height_shape = 224
 
 # Definir el número de clases
-num_classes = 18  # Ajustar según el número de clases en tu dataset
+num_classes = 52  # Ajustar según el número de clases en tu dataset
 
 # Directorios de datos de entrenamiento y validación
 train_data_dir = os.path.join(PRODUCTION_DATASET_FOLDER, 'train')
