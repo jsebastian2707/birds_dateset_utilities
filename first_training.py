@@ -1,10 +1,15 @@
+# Importaciones necesarias
 import time
 import psutil
 import numpy as np
-import tensorflow as tf
 import json
 import os
-from tqdm import tqdm  # Importar tqdm
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Dense, Flatten
+from tensorflow.keras.applications.vgg16 import VGG16, preprocess_input
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 # Cargar constantes desde el archivo JSON
 with open('config.json', 'r') as config_file:
@@ -41,24 +46,24 @@ validation_data_dir = os.path.join(PRODUCTION_DATASET_FOLDER, 'valid')
 # Función para crear y entrenar el modelo
 def create_and_train_vgg16_model(learning_rate, l2_regularization, batch_size):
     # Crear generadores de datos con el batch_size proporcionado
-    train_datagen = tf.keras.preprocessing.image.ImageDataGenerator(
+    train_datagen = ImageDataGenerator(
         rotation_range=20,
         zoom_range=0.2,
         width_shift_range=0.1,
         height_shift_range=0.1,
         horizontal_flip=True,
         vertical_flip=False,
-        preprocessing_function=tf.keras.applications.vgg16.preprocess_input
+        preprocessing_function=preprocess_input
     )
 
-    valid_datagen = tf.keras.preprocessing.image.ImageDataGenerator(
+    valid_datagen = ImageDataGenerator(
         rotation_range=20,
         zoom_range=0.2,
         width_shift_range=0.1,
         height_shift_range=0.1,
         horizontal_flip=True,
         vertical_flip=False,
-        preprocessing_function=tf.keras.applications.vgg16.preprocess_input
+        preprocessing_function=preprocess_input
     )
 
     train_generator = train_datagen.flow_from_directory(
@@ -76,26 +81,26 @@ def create_and_train_vgg16_model(learning_rate, l2_regularization, batch_size):
     )
 
     # Definir la entrada de la red neuronal con el tamaño de las imágenes
-    image_input = tf.keras.layers.Input(shape=(width_shape, height_shape, 3))
+    image_input = Input(shape=(width_shape, height_shape, 3))
 
     # Cargar el modelo VGG16 preentrenado con pesos ajustados desde ImageNet
-    model = tf.keras.applications.vgg16.VGG16(input_tensor=image_input, include_top=False, weights='imagenet')
+    model = VGG16(input_tensor=image_input, include_top=False, weights='imagenet')
 
     # Aplanar la salida del VGG16
-    x = tf.keras.layers.Flatten()(model.output)
+    x = Flatten()(model.output)
 
     # Añadir una nueva capa densa al final del modelo para la clasificación multiclase con regularización L2
-    out = tf.keras.layers.Dense(num_classes, activation='softmax', kernel_regularizer='l2')(x)
+    out = Dense(num_classes, activation='softmax', kernel_regularizer='l2')(x)
 
     # Crear un nuevo modelo personalizado que toma la entrada de la imagen y produce la salida clasificada
-    custom_vgg_model = tf.keras.models.Model(inputs=model.input, outputs=out)
+    custom_vgg_model = Model(inputs=model.input, outputs=out)
 
     # Congelar todas las capas del modelo base VGG16
     for layer in model.layers:
         layer.trainable = False
 
     # Compilar el modelo con una función de pérdida, optimizador y métricas especificadas
-    custom_vgg_model.compile(loss='categorical_crossentropy', optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), metrics=['accuracy'])
+    custom_vgg_model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate=learning_rate), metrics=['accuracy'])
 
     # Mostrar un resumen del modelo que incluye la arquitectura y el número de parámetros
     custom_vgg_model.summary()
@@ -105,30 +110,25 @@ def create_and_train_vgg16_model(learning_rate, l2_regularization, batch_size):
     start_cpu = psutil.cpu_percent(interval=None)
     start_memory = psutil.virtual_memory().used
 
-    # Crear los callbacks para Early Stopping y guardar el modelo al final de cada época
-    checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        filepath=os.path.join(models_dir, 'epoch_{epoch}.keras'),
-        save_weights_only=False,
-        save_freq='epoch',
-        verbose=1
-    )
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=10, verbose=1, restore_best_weights=True)
+    # Crear los callbacks para Early Stopping y guardar el mejor modelo
+    checkpoint = ModelCheckpoint('best_model.keras', monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
+    early_stopping = EarlyStopping(monitor='val_accuracy', patience=10, verbose=1, restore_best_weights=True)
 
     # Entrenar el modelo utilizando generadores de datos para el conjunto de entrenamiento y validación
-    # Envolver el entrenamiento en tqdm para la barra de progreso
-    with tqdm(total=epochs, desc='Entrenamiento', unit='época') as pbar:
-        model_history = custom_vgg_model.fit(
-            train_generator,
-            epochs=epochs,
-            validation_data=validation_generator,
-            steps_per_epoch=nb_train_samples // batch_size,
-            validation_steps=nb_validation_samples // batch_size,
-            callbacks=[checkpoint, early_stopping]
-        )
-
-        # Actualizar la barra de progreso al final de cada época
-        for epoch in range(epochs):
-            pbar.update(1)
+#  ████████ ██████   █████  ██ ███    ██ ██ ███    ██  ██████  
+#     ██    ██   ██ ██   ██ ██ ████   ██ ██ ████   ██ ██       
+#     ██    ██████  ███████ ██ ██ ██  ██ ██ ██ ██  ██ ██   ███ 
+#     ██    ██   ██ ██   ██ ██ ██  ██ ██ ██ ██  ██ ██ ██    ██ 
+#     ██    ██   ██ ██   ██ ██ ██   ████ ██ ██   ████  ██████  
+#                                                              
+    model_history = custom_vgg_model.fit(
+        train_generator,
+        epochs=epochs,
+        validation_data=validation_generator,
+        steps_per_epoch=nb_train_samples // batch_size,
+        validation_steps=nb_validation_samples // batch_size,
+        callbacks=[checkpoint, early_stopping]
+    )
 
     # Medir el tiempo y el uso de CPU/memoria después de entrenar
     end_time = time.time()
