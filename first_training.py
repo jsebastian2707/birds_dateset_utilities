@@ -115,12 +115,13 @@ def create_and_train_vgg16_model(learning_rate, l2_regularization, batch_size):
     early_stopping = EarlyStopping(monitor='val_accuracy', patience=10, verbose=1, restore_best_weights=True)
 
     # Entrenar el modelo utilizando generadores de datos para el conjunto de entrenamiento y validación
-#  ████████ ██████   █████  ██ ███    ██ ██ ███    ██  ██████  
-#     ██    ██   ██ ██   ██ ██ ████   ██ ██ ████   ██ ██       
-#     ██    ██████  ███████ ██ ██ ██  ██ ██ ██ ██  ██ ██   ███ 
-#     ██    ██   ██ ██   ██ ██ ██  ██ ██ ██ ██  ██ ██ ██    ██ 
-#     ██    ██   ██ ██   ██ ██ ██   ████ ██ ██   ████  ██████  
-#                                                              
+
+    #  ████████ ██████   █████  ██ ███    ██ ██ ███    ██  ██████  
+    #     ██    ██   ██ ██   ██ ██ ████   ██ ██ ████   ██ ██       
+    #     ██    ██████  ███████ ██ ██ ██  ██ ██ ██ ██  ██ ██   ███ 
+    #     ██    ██   ██ ██   ██ ██ ██  ██ ██ ██ ██  ██ ██ ██    ██ 
+    #     ██    ██   ██ ██   ██ ██ ██   ████ ██ ██   ████  ██████ 
+                                                        
     model_history = custom_vgg_model.fit(
         train_generator,
         epochs=epochs,
