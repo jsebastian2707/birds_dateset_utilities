@@ -1,5 +1,3 @@
----
-
 # Clasificación de Especies de Aves con Redes Neuronales Convolucionales
 
 Este proyecto utiliza una red neuronal convolucional basada en VGG16 para clasificar diferentes especies de aves. La aplicación entrena un modelo de aprendizaje profundo para identificar las especies en imágenes, permitiendo así una clasificación precisa.
@@ -117,5 +115,3 @@ Es recomendable ejecutar el entrenamiento en una GPU para un rendimiento óptimo
 ├── config.json               # Archivo de configuración del proyecto
 └── README.md
 ```
-
----
