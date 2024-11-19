@@ -34,13 +34,15 @@ def save_processed_image(filename):
 # Función para procesar una imagen individual y guardarla en la carpeta de especie correspondiente
 def process_image(file_path, species_folder, output_size=(224, 224)):
     with Image.open(file_path) as img:
-        # Rellenar el fondo si es PNG con transparencia
-        #if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
-        fllbg_img = Image.new('RGB', img.size, CONST_FILLBG_COLOR)
-        fllbg_img.paste(img, mask=img.split()[3])  # Usar el canal alpha como máscara
-        
+        # Verificar si la imagen tiene canal alpha
+        if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+            fllbg_img = Image.new('RGB', img.size, CONST_FILLBG_COLOR)
+            fllbg_img.paste(img, mask=img.split()[3])  # Usar el canal alpha como máscara
+        else:
+            # Convertir imágenes sin transparencia a RGB directamente
+            fllbg_img = img.convert('RGB')
 
-        # Guardar la imagen recortada en la subcarpeta de la especie
+        # Guardar la imagen rellenada en la subcarpeta de la especie
         output_filename = f"fillbg_{os.path.basename(file_path)}"
         output_path = os.path.join(species_folder, output_filename)
         fllbg_img.save(output_path)
@@ -48,9 +50,9 @@ def process_image(file_path, species_folder, output_size=(224, 224)):
         # Guardar en el archivo de progreso
         save_processed_image(file_path)
 
-def fill_images_in_folder(ruta_dataset, output_size=(224, 224)):
-    # Crear carpeta centralizada para las imágenes redimensionadas
-    os.makedirs(CONST_DATASET_RESIZE, exist_ok=True)
+def fill_images_in_folder(ruta_dataset):
+    # Crear carpeta centralizada para las imágenes con fondo rellenado
+    os.makedirs(CONST_DATASET_FILLBG, exist_ok=True)
 
     # Cargar imágenes ya procesadas
     processed_images = load_processed_images()
@@ -69,7 +71,7 @@ def fill_images_in_folder(ruta_dataset, output_size=(224, 224)):
                 os.path.join(ruta_especie, filename)
                 for filename in os.listdir(ruta_especie)
                 if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))
-                and os.path.join(ruta_especie, filename) not in processed_images  # Excluir imágenes ya procesadas
+                and filename not in processed_images  # Comparar solo nombres de archivo
             ]
             tasks.extend((file_path, species_folder) for file_path in files)
 
@@ -77,7 +79,7 @@ def fill_images_in_folder(ruta_dataset, output_size=(224, 224)):
     with futures.ProcessPoolExecutor() as executor:
         # Usar tqdm para mostrar la barra de progreso
         futures_list = {
-            executor.submit(process_image, file_path, species_folder, output_size): file_path
+            executor.submit(process_image, file_path, species_folder): file_path
             for file_path, species_folder in tasks
         }
         for future in tqdm(futures.as_completed(futures_list), total=len(futures_list)):
